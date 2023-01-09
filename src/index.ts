@@ -6,13 +6,27 @@ export { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 
 import { VERSION } from "./version";
 import { OctokitOptions } from "@octokit/core/dist-types/types";
-import ProxyAgent from "proxy-agent";
+const HttpsProxyAgent = require("https-proxy-agent");
 
 const DEFAULTS = {
   authStrategy: createActionAuth,
   baseUrl: getApiBaseUrl(),
   userAgent: `octokit-action.js/${VERSION}`,
 };
+
+function getProxyAgent() {
+  const httpProxy = process.env["HTTP_PROXY"] || process.env["http_proxy"];
+  if (httpProxy) {
+    return new HttpsProxyAgent(httpProxy);
+  }
+
+  const httpsProxy = process.env["HTTPS_PROXY"] || process.env["https_proxy"];
+  if (httpsProxy) {
+    return new HttpsProxyAgent(httpsProxy);
+  }
+
+  return undefined;
+}
 
 export const Octokit = Core.plugin(
   paginateRest,
@@ -22,7 +36,7 @@ export const Octokit = Core.plugin(
     ...DEFAULTS,
     ...options,
     request: {
-      agent: new ProxyAgent(),
+      agent: getProxyAgent(),
       ...options.request,
     },
   };
